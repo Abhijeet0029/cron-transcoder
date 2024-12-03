@@ -1,0 +1,65 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: video-processor
+    ports:
+      - "5001:5000"
+    environment:
+      PORT: 5000
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minio123
+      MINIO_SECRET_KEY: minio123
+      MONGO_URI: mongodb+srv://abhijeet-eshe:ynVWaDkWanQdqLoe@eshe-db-1.lhgn6.mongodb.net/
+      SOURCE_BUCKET: source-bucket
+      DESTINATION_BUCKET: destination-bucket
+      DASH_OUTPUT_DIR: /usr/src/app/dash-outputs
+      VIDEO_UPLOAD_DIR: /usr/src/app/uploads
+      MAX_VIDEO_SIZE: 367001600
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./dash-outputs:/usr/src/app/dash-outputs
+      - ./uploads:/usr/src/app/uploads
+    depends_on:
+      - mongo
+      - minio
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: video-uploader
+    ports:
+      - "2000:8080"
+    depends_on:
+      - app
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: videos
+    volumes:
+      - mongo-data:/data/db
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9002:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minio123
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+
+volumes:
+  mongo-data:
+  minio-data:
